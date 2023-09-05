@@ -23,26 +23,26 @@ public class FactorialPopUp : MonoBehaviour
     private void Awake()
     {
         _calculateButton.onClick.AddListener(() => CalculateFactorialAsync(int.Parse(_inputField.text)));
-        
-        ExampleDownloadManager<AudioClip,Sprite> downloadManager = new("url.mp3","url.jpg");
-        _downloadMusicButton.onClick.AddListener (() => _audioSource.clip = downloadManager.TaskResult1[0]);
-        _downloadImageButton.onClick.AddListener (() => _image.sprite = downloadManager.TaskResult2[0]);
+
+        ExampleDownloadManager<AudioClip, Sprite> downloadManager = new("url.mp3", "url.jpg");
+        _downloadMusicButton.onClick.AddListener(() => _audioSource.clip = downloadManager.TaskResult1[0]);
+        _downloadImageButton.onClick.AddListener(() => _image.sprite = downloadManager.TaskResult2[0]);
     }
-    
+
     private async void CalculateFactorialAsync(int number)
     {
         _cancellationTokenSource = new CancellationTokenSource();
 
         try
         {
-            long result =
-                await CalculateFactorialAsync(number, _cancellationTokenSource.Token);
+            long result = await CalculateFactorialAsync(number, _cancellationTokenSource.Token);
             Debug.Log($"Factorial {number} = {result}");
             _answerText.text = result.ToString();
         }
-        catch (OperationCanceledException)
+        catch (Exception exception)
         {
-            _answerText.text = "The factorial calculation was canceled after too much time.";
+            Debug.LogWarning(exception);
+            throw;
         }
     }
 
@@ -63,19 +63,23 @@ public class FactorialPopUp : MonoBehaviour
         for (int i = 1; i <= number; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
             result *= i;
 
             TimeSpan elapsedTime = DateTime.Now - startTime;
             if (elapsedTime.TotalSeconds > _maxExecutionTime)
             {
-                _cancellationTokenSource?.Cancel();
-                throw new OperationCanceledException();
+                Cancel();
             }
 
-            await Task.Delay(100, cancellationToken); //imitate time
+            await Task.Delay(100, cancellationToken); //imitate operation time
         }
 
         return result;
+    }
+
+    private void Cancel()
+    {
+        _cancellationTokenSource?.Cancel();
+        _answerText.text = "The factorial calculation was canceled after too much time.";
     }
 }
